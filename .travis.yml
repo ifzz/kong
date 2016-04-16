@@ -1,0 +1,27 @@
+language: erlang
+
+env:
+  global:
+    - LUAROCKS=2.2.0
+    - OPENRESTY=1.7.10.1
+    - CASSANDRA=2.1.2
+  matrix:
+    - LUA=lua5.1
+
+branches:
+  only:
+    - master
+
+before_install:
+  - bash .travis/setup_lua.sh
+  - bash .travis/setup_openresty.sh
+  - export PATH=$PATH:/usr/local/openresty/nginx/sbin
+  - bash .travis/setup_cassandra.sh
+
+install:
+  - sudo make install
+  - sudo make dev
+
+script: "busted --coverage spec/"
+
+after_success: "luacov-coveralls -i kong"
