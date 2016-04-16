@@ -1,24 +1,59 @@
-language: erlang
-
+sudo: false
+notifications:
+  email: false
+addons:
+  apt:
+    packages:
+      - sed
+      - net-tools
+      - uuid-dev
+      - libpcre3-dev
+      - build-essential
 env:
   global:
-    - CASSANDRA_VERSION=2.1.10
+    - LUA_VERSION=luajit-2.1
+    - CASSANDRA_VERSION=2.2.4
+    - LUAROCKS_VERSION=2.2.2
+    - OPENSSL_VERSION=1.0.2e
+    - OPENRESTY_VERSION=1.9.3.1
+    - SERF_VERSION=0.7.0
+    - DNSMASQ_VERSION=2.75
+    - LUAJIT_DIR=$HOME/luajit
+    - LUAROCKS_DIR=$HOME/luarocks
+    - OPENRESTY_DIR=$HOME/openresty
+    - SERF_DIR=$HOME/serf
+    - DNSMASQ_DIR=$HOME/dnsmasq
+    - CASSANDRA_HOSTS=127.0.0.1
   matrix:
-    - LUA=lua5.1
-
-branches:
-  only:
-    - master
-
+    - TEST_SUITE=unit
+    - TEST_SUITE=integration
+    - TEST_SUITE=plugins
 before_install:
-  - "bash .ci/setup_kong.sh"
-  - "bash .ci/setup_cassandra.sh"
-
+  - bash .ci/setup_lua.sh
+  - bash .ci/setup_openresty.sh
+  - bash .ci/setup_cassandra.sh
+  - bash .ci/setup_serf.sh
+  - bash .ci/setup_dnsmasq.sh
+  - export PATH="$LUAJIT_DIR/bin:$LUAROCKS_DIR/bin:$OPENRESTY_DIR/nginx/sbin:$SERF_DIR:$DNSMASQ_DIR/usr/local/sbin:$PATH"
+  - export LUA_PATH="./?.lua;$LUAROCKS_DIR/share/lua/5.1/?.lua;$LUAROCKS_DIR/share/lua/5.1/?/init.lua;$LUAROCKS_DIR/lib/lua/5.1/?.lua;$LUA_PATH"
+  - export LUA_CPATH="./?.so;$LUAROCKS_DIR/lib/lua/5.1/?.so;$LUA_CPATH"
 install:
-  - "sudo make dev"
-
+  - luarocks install busted
+  - luarocks install luacov
+  - luarocks install luacov-coveralls
+  - luarocks install luacheck
+  - luarocks make kong-*.rockspec
+  - "kong config -c kong.yml -e TEST"
 script:
-  - "busted -o spec/busted-print.lua --coverage spec/"
-  - "make lint"
-
-after_success: "luacov-coveralls -i kong"
+  - make lint
+  - .ci/run_tests.sh
+cache:
+  apt: true
+  pip: true
+  directories:
+    - $LUAJIT_DIR
+    - $LUAROCKS_DIR
+    - $OPENRESTY_DIR
+    - $SERF_DIR
+    - $DNSMASQ_DIR
+    - $HOME/.ccm/repository
