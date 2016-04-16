@@ -2,7 +2,7 @@ language: erlang
 
 env:
   global:
-    - CASSANDRA_VERSION=2.1.5
+    - CASSANDRA_VERSION=2.1.8
   matrix:
     - LUA=lua5.1
 
@@ -11,16 +11,14 @@ branches:
     - master
 
 before_install:
-  - bash .travis/setup_kong.sh
-  - bash .travis/setup_cassandra.sh
+  - "bash .travis/setup_kong.sh"
+  - "bash .travis/setup_cassandra.sh"
 
 install:
-  - sudo make install
-  - sudo make dev
-  - sudo sed -i.bak s@/usr/local/bin/luajit@/usr/bin/lua@g /usr/local/bin/busted
+  - "sudo make dev"
 
 script:
   - "busted -o spec/busted-print.lua --coverage spec/"
-  - "luacheck kong"
+  - "make lint"
 
 after_success: "luacov-coveralls -i kong"
