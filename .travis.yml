@@ -1,6 +1,8 @@
 language: erlang
 
 env:
+  global:
+    - CASSANDRA_VERSION=2.1.5
   matrix:
     - LUA=lua5.1
 
@@ -9,16 +11,16 @@ branches:
     - master
 
 before_install:
-  - bash .travis/setup_lua.sh
-  - bash .travis/setup_openresty.sh
-  - export PATH=$PATH:/usr/local/openresty/nginx/sbin
+  - bash .travis/setup_kong.sh
   - bash .travis/setup_cassandra.sh
-  - bash .travis/setup_dnsmasq.sh
 
 install:
   - sudo make install
   - sudo make dev
+  - sudo sed -i.bak s@/usr/local/bin/luajit@/usr/bin/lua@g /usr/local/bin/busted
 
-script: "busted --coverage spec/"
+script:
+  - "busted -o spec/busted-print.lua --coverage spec/"
+  - "luacheck kong"
 
 after_success: "luacov-coveralls -i kong"
